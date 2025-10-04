@@ -1,0 +1,50 @@
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes particle-glow {
+    0%, 100% { 
+        box-shadow: 0 0 5px #7f0df2, 0 0 10px #7f0df2, 0 0 15px #7f0df2; 
+        opacity: 0.5; 
+    }
+    50% { 
+        box-shadow: 0 0 10px #7f0df2, 0 0 20px #7f0df2, 0 0 30px #7f0df2; 
+        opacity: 1; 
+    }
+}
+
+@keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+.typing-animation {
+    overflow: hidden;
+    border-right: 2px solid #7f0df2;
+    white-space: nowrap;
+    animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+}
+
+@keyframes blink-caret {
+    from, to { border-color: transparent; }
+    50% { border-color: #7f0df2; }
+}
+
+.pulse-glow {
+    animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { 
+        box-shadow: 0 0 5px rgba(127, 13, 242, 0.5);
+    }
+    50% { 
+        box-shadow: 0 0 20px rgba(127, 13, 242, 0.8), 
+                   0 0 30px rgba(127, 13, 242, 0.6);
+    }
+}

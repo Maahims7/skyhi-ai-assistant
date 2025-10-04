@@ -1,0 +1,66 @@
+.glassmorphism {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glassmorphism {
+    background: rgba(25, 16, 34, 0.5);
+    border: 1px solid rgba(127, 13, 242, 0.3);
+}
+
+.holographic-effect {
+    background: linear-gradient(135deg, 
+        rgba(127, 13, 242, 0.1) 0%, 
+        rgba(127, 13, 242, 0.05) 50%, 
+        rgba(127, 13, 242, 0.1) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.holographic-effect::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, 
+        transparent, 
+        rgba(127, 13, 242, 0.1), 
+        transparent);
+    transform: rotate(45deg);
+    animation: hologram-shine 3s infinite;
+}
+
+@keyframes hologram-shine {
+    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+.neon-glow {
+    box-shadow: 
+        0 0 5px currentColor,
+        0 0 10px currentColor,
+        0 0 15px currentColor,
+        0 0 20px currentColor;
+}
+
+.voice-wave {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.voice-bar {
+    width: 3px;
+    background: #7f0df2;
+    border-radius: 2px;
+    animation: voice-wave 1s ease-in-out infinite;
+}
+
+@keyframes voice-wave {
+    0%, 100% { height: 5px; }
+    50% { height: 20px; }
+}

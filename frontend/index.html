@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>SkyHi - AI Assistant</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        // Suppress production warning for development
+        console.warn = function(message) {
+            if (message.includes('should not be used in production')) {
+                return;
+            }
+            console.log(message);
+        };
+    </script>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <style>
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .dark .glassmorphism {
+            background: rgba(25, 16, 34, 0.5);
+            border: 1px solid rgba(127, 13, 242, 0.3);
+        }
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+                -webkit-text-size-adjust: 100%;
+                text-size-adjust: 100%;
+            }
+            50% {
+                transform: translateY(-10px);
+                -webkit-text-size-adjust: 100%;
+                text-size-adjust: 100%;
+            }
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        /* Print color adjust for better compatibility */
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7f0df2",
+                        "background-light": "#f7f5f8",
+                        "background-dark": "#191022",
+                    },
+                    fontFamily: {
+                        display: ["Space Grotesk"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        full: "9999px",
+                    },
+                    boxShadow: {
+                        'primary-glow': '0 0 15px 5px rgba(127, 13, 242, 0.5)',
+                    }
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden" id="particle-container"></div>
+
+    <div id="voice-visualizer" class="fixed bottom-4 right-4 z-50 hidden">
+        <div class="relative w-16 h-16">
+            <div class="absolute inset-0 rounded-full bg-primary/20 animate-pulse"></div>
+            <div class="absolute inset-2 rounded-full bg-primary/40 animate-ping"></div>
+            <div class="absolute inset-4 rounded-full bg-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-white">mic</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="min-h-screen flex flex-col">
+        <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-background-dark">
+            <div class="w-full max-w-md p-8">
+                <div class="text-center mb-8">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
+                            <span class="material-symbols-outlined text-white text-3xl">auto_awesome</span>
+                        </div>
+                    </div>
+                    <h1 class="text-3xl font-bold text-white mb-2">SkyHi</h1>
+                    <p class="text-gray-400">Your Personal AI Assistant</p>
+                </div>
+
+                <div class="glassmorphism rounded-xl p-6">
+                    <h2 class="text-xl font-bold text-white mb-4">Face Recognition Login</h2>
+                    <div class="mb-4">
+                        <video id="video" autoplay playsinline class="w-full rounded-lg border-2 border-primary/30"></video>
+                        <canvas id="canvas" class="hidden"></canvas>
+                    </div>
+                    <button id="capture-face" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-primary/90 transition-colors">
+                        Capture & Verify Face
+                    </button>
+                    <p id="login-status" class="text-center mt-4 text-sm text-gray-400"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboard" class="hidden flex-1">
+            <header class="sticky top-0 z-40 border-b border-gray-200/10 dark:border-gray-800/50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm">
+                <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div class="flex h-16 items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <span class="material-symbols-outlined text-primary text-3xl animate-float">
+                                auto_awesome
+                            </span>
+                            <h1 class="text-xl font-bold text-gray-900 dark:text-white">
+                                SkyHi
+                            </h1>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <button id="voice-toggle" class="relative p-2 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors">
+                                <span class="material-symbols-outlined">mic</span>
+                            </button>
+
+                            <button id="theme-toggle" class="p-2 rounded-full text-gray-500 hover:bg-gray-200/50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-300 transition-colors">
+                                <span class="material-symbols-outlined">dark_mode</span>
+                            </button>
+
+                            <div class="size-10 rounded-full bg-cover bg-center ring-2 ring-primary/50 hover:ring-primary transition-all cursor-pointer" id="user-avatar"></div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1">
+                <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                    <div class="mb-8 text-center">
+                        <h2 id="welcome-message" class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl animate-float">
+                            Welcome back, User
+                        </h2>
+                        <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                            What can I help you with today?
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                        <div class="lg:col-span-2">
+                            <div class="glassmorphism rounded-xl p-6 h-96 overflow-y-auto" id="chat-container">
+                                <div class="space-y-4" id="chat-messages">
+                                    </div>
+                            </div>
+
+                            <div class="mt-4 flex gap-2">
+                                <input type="text" id="chat-input"
+                                    class="flex-1 glassmorphism rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                                    placeholder="Type your message or say 'Hey SkyHi'...">
+                                <button id="send-message" class="bg-primary text-white px-6 py-3 rounded-lg font-bold hover:bg-primary/90 transition-colors">
+                                    Send
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="glassmorphism rounded-xl p-6">
+                                <h3 class="text-lg font-bold text-white mb-4">Quick Actions</h3>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button class="quick-action p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                        <span class="material-symbols-outlined">schedule</span>
+                                        <span class="text-sm mt-1">Schedule</span>
+                                    </button>
+                                    <button class="quick-action p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                        <span class="material-symbols-outlined">task</span>
+                                        <span class="text-sm mt-1">Tasks</span>
+                                    </button>
+                                    <button class="quick-action p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                        <span class="material-symbols-outlined">weather</span>
+                                        <span class="text-sm mt-1">Weather</span>
+                                    </button>
+                                    <button class="quick-action p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                        <span class="material-symbols-outlined">news</span>
+                                        <span class="text-sm mt-1">News</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="glassmorphism rounded-xl p-6">
+                                <h3 class="text-lg font-bold text-white mb-2">Weather</h3>
+                                <div id="weather-widget" class="text-gray-400">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="glassmorphism rounded-xl p-6">
+                            <h3 class="text-lg font-bold text-white mb-4">Tasks</h3>
+                            <div id="tasks-list" class="space-y-2">
+                                </div>
+                            <button class="w-full mt-4 p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                + Add Task
+                            </button>
+                        </div>
+
+                        <div class="glassmorphism rounded-xl p-6">
+                            <h3 class="text-lg font-bold text-white mb-4">Calendar</h3>
+                            <div id="calendar-widget">
+                                </div>
+                        </div>
+
+                        <div class="glassmorphism rounded-xl p-6">
+                            <h3 class="text-lg font-bold text-white mb-4">News</h3>
+                            <div id="news-widget" class="space-y-2">
+                                </div>
+                        </div>
+
+                        <div class="glassmorphism rounded-xl p-6">
+                            <h3 class="text-lg font-bold text-white mb-4">Utilities</h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button class="utility-btn p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                    Calculator
+                                </button>
+                                <button class="utility-btn p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                    Converter
+                                </button>
+                                <button class="utility-btn p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                    Speed Test
+                                </button>
+                                <button class="utility-btn p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                    Music
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/face-recognition.js"></script>
+    <script src="js/voice.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Initialize camera when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await window.faceRecognition.startCamera();
+
+                // Add click event to capture button
+                document.getElementById('capture-face').addEventListener('click', () => {
+                    window.faceRecognition.verifyFace();
+                });
+            } catch (error) {
+                document.getElementById('login-status').textContent = error.message;
+            }
+        });
+    </script>
+</body>
+</html>
