@@ -5,7 +5,7 @@ const router = express.Router();
 // API Keys (in production, these should be in environment variables)
 const API_KEYS = {
     OPENWEATHER: process.env.OPENWEATHER_API_KEY,
-    NEWSAPI: process.env.NEWS_API_KEY,
+    NEWSAPI: process.env.NEWS_API_KEY || '74954ef9723e4f1297420b35f878d5b2',
     IPGEOLOCATION: process.env.IPGEOLOCATION_API_KEY
 };
 
@@ -78,13 +78,18 @@ router.get('/weather', async (req, res) => {
 // News API
 router.get('/news', async (req, res) => {
     try {
-        const { category = 'general', country = 'us', pageSize = 10 } = req.query;
+        const { category = 'general', country = 'us', pageSize = 10, q } = req.query;
         
         if (API_KEYS.NEWSAPI) {
             // Real news data from NewsAPI
-            const response = await axios.get(
-                `https://newsapi.org/v2/top-headlines?country=${country}&category=${category}&pageSize=${pageSize}&apiKey=${API_KEYS.NEWSAPI}`
-            );
+            let url = `https://newsapi.org/v2/top-headlines?country=${country}&category=${category}&pageSize=${pageSize}&apiKey=${API_KEYS.NEWSAPI}`;
+            
+            // If search query is provided, use everything endpoint
+            if (q) {
+                url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&pageSize=${pageSize}&sortBy=publishedAt&apiKey=${API_KEYS.NEWSAPI}`;
+            }
+            
+            const response = await axios.get(url);
             
             const news = response.data.articles.map(article => ({
                 title: article.title,
@@ -93,10 +98,17 @@ router.get('/news', async (req, res) => {
                 urlToImage: article.urlToImage,
                 publishedAt: article.publishedAt,
                 source: article.source.name,
-                author: article.author
+                author: article.author,
+                content: article.content
             }));
             
-            res.json(news);
+            res.json({
+                articles: news,
+                totalResults: response.data.totalResults,
+                status: response.data.status,
+                source: 'NewsAPI',
+                timestamp: new Date().toISOString()
+            });
         } else {
             // Mock news data
             const mockNews = [
@@ -107,7 +119,8 @@ router.get('/news', async (req, res) => {
                     urlToImage: "https://via.placeholder.com/300x200?text=AI+News",
                     publishedAt: new Date().toISOString(),
                     source: "Tech News",
-                    author: "AI Reporter"
+                    author: "AI Reporter",
+                    content: "SkyHi AI Assistant has launched with revolutionary features including voice recognition, face authentication, and advanced AI capabilities."
                 },
                 {
                     title: "Weather Technology Advances with AI Integration",
@@ -116,7 +129,8 @@ router.get('/news', async (req, res) => {
                     urlToImage: "https://via.placeholder.com/300x200?text=Weather+Tech",
                     publishedAt: new Date(Date.now() - 3600000).toISOString(),
                     source: "Weather Today",
-                    author: "Weather Expert"
+                    author: "Weather Expert",
+                    content: "Weather technology has advanced significantly with AI integration, providing more accurate predictions and better user experiences."
                 },
                 {
                     title: "Voice Recognition Technology Reaches New Heights",
@@ -125,15 +139,84 @@ router.get('/news', async (req, res) => {
                     urlToImage: "https://via.placeholder.com/300x200?text=Voice+Tech",
                     publishedAt: new Date(Date.now() - 7200000).toISOString(),
                     source: "Voice Tech Weekly",
-                    author: "Voice Specialist"
+                    author: "Voice Specialist",
+                    content: "Voice recognition technology has reached new heights, enabling more natural and intuitive human-AI interactions."
                 }
             ];
             
-            res.json(mockNews);
+            res.json({
+                articles: mockNews,
+                totalResults: mockNews.length,
+                status: "ok",
+                source: "Mock Data",
+                timestamp: new Date().toISOString()
+            });
         }
     } catch (error) {
         console.error('News API error:', error);
-        res.status(500).json({ error: 'News service unavailable' });
+        
+        // Enhanced error handling
+        if (error.response && error.response.status === 429) {
+            res.status(429).json({ 
+                error: 'News API rate limit exceeded. Please try again later.',
+                retryAfter: '1 hour'
+            });
+        } else if (error.response && error.response.status === 401) {
+            res.status(401).json({ 
+                error: 'News API key is invalid or expired.',
+                suggestion: 'Please check your API key configuration.'
+            });
+        } else {
+            res.status(500).json({ 
+                error: 'News service temporarily unavailable',
+                fallback: 'Using mock data'
+            });
+        }
+    }
+});
+
+// News Search API
+router.get('/news/search', async (req, res) => {
+    try {
+        const { q, language = 'en', sortBy = 'publishedAt', pageSize = 10 } = req.query;
+        
+        if (!q) {
+            return res.status(400).json({ error: 'Search query (q) is required' });
+        }
+        
+        if (API_KEYS.NEWSAPI) {
+            const response = await axios.get(
+                `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=${language}&sortBy=${sortBy}&pageSize=${pageSize}&apiKey=${API_KEYS.NEWSAPI}`
+            );
+            
+            const news = response.data.articles.map(article => ({
+                title: article.title,
+                description: article.description,
+                url: article.url,
+                urlToImage: article.urlToImage,
+                publishedAt: article.publishedAt,
+                source: article.source.name,
+                author: article.author,
+                content: article.content
+            }));
+            
+            res.json({
+                articles: news,
+                totalResults: response.data.totalResults,
+                status: response.data.status,
+                query: q,
+                source: 'NewsAPI Search',
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            res.status(503).json({ 
+                error: 'News API key not configured',
+                suggestion: 'Please configure your News API key'
+            });
+        }
+    } catch (error) {
+        console.error('News search error:', error);
+        res.status(500).json({ error: 'News search service unavailable' });
     }
 });
 

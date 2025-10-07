@@ -110,15 +110,15 @@
                 </div>
 
                 <div class="glassmorphism rounded-xl p-6">
-                    <h2 class="text-xl font-bold text-white mb-4">Face Recognition Login</h2>
-                    <div class="mb-4">
-                        <video id="video" autoplay playsinline class="w-full rounded-lg border-2 border-primary/30"></video>
-                        <canvas id="canvas" class="hidden"></canvas>
-                    </div>
-                    <button id="capture-face" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-primary/90 transition-colors">
-                        Capture & Verify Face
+                    <h2 class="text-xl font-bold text-white mb-4">Welcome to SkyHi</h2>
+                    <p class="text-gray-400 mb-6">Experience the future of AI assistance with dual chat modes and voice interaction.</p>
+                    <button id="demo-login" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-primary/90 transition-colors">
+                        🚀 Start Demo Experience
                     </button>
-                    <p id="login-status" class="text-center mt-4 text-sm text-gray-400"></p>
+                    <p class="text-center mt-4 text-sm text-gray-400">
+                        Face recognition temporarily disabled<br>
+                        <span class="text-xs">Install Visual Studio build tools to enable</span>
+                    </p>
                 </div>
             </div>
         </div>
@@ -172,10 +172,14 @@
                             <div class="mt-4 flex gap-2">
                                 <input type="text" id="chat-input"
                                     class="flex-1 glassmorphism rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
-                                    placeholder="Type your message or say 'Hey SkyHi'...">
+                                    placeholder="Type your message, say 'Hey SkyHi', or use 'pro:' for advanced mode...">
                                 <button id="send-message" class="bg-primary text-white px-6 py-3 rounded-lg font-bold hover:bg-primary/90 transition-colors">
                                     Send
                                 </button>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-400 text-center">
+                                💡 Try: "Hey SkyHi, system info" or "pro: generate a Python function"<br>
+                                🎤 Voice: "Jarvis, open calculator" or "Activate SkyHi"
                             </div>
                         </div>
 
@@ -184,20 +188,28 @@
                                 <h3 class="text-lg font-bold text-white mb-4">Quick Actions</h3>
                                 <div class="grid grid-cols-2 gap-3">
                                     <button class="quick-action p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                                        <span class="material-symbols-outlined">schedule</span>
-                                        <span class="text-sm mt-1">Schedule</span>
+                                        <span class="material-symbols-outlined">computer</span>
+                                        <span class="text-sm mt-1">System Info</span>
                                     </button>
                                     <button class="quick-action p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                                        <span class="material-symbols-outlined">task</span>
-                                        <span class="text-sm mt-1">Tasks</span>
+                                        <span class="material-symbols-outlined">schedule</span>
+                                        <span class="text-sm mt-1">Schedule</span>
                                     </button>
                                     <button class="quick-action p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
                                         <span class="material-symbols-outlined">weather</span>
                                         <span class="text-sm mt-1">Weather</span>
                                     </button>
                                     <button class="quick-action p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                                        <span class="material-symbols-outlined">news</span>
-                                        <span class="text-sm mt-1">News</span>
+                                        <span class="material-symbols-outlined">search</span>
+                                        <span class="text-sm mt-1">Web Search</span>
+                                    </button>
+                                    <button class="quick-action p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                        <span class="material-symbols-outlined">content_copy</span>
+                                        <span class="text-sm mt-1">Clipboard</span>
+                                    </button>
+                                    <button class="quick-action p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                        <span class="material-symbols-outlined">screenshot</span>
+                                        <span class="text-sm mt-1">Screenshot</span>
                                     </button>
                                 </div>
                             </div>
@@ -263,18 +275,31 @@
     <script src="js/app.js"></script>
 
     <script>
-        // Initialize camera when page loads
+        // Initialize demo login when page loads
         document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                await window.faceRecognition.startCamera();
+            // Add click event to demo login button
+            document.getElementById('demo-login').addEventListener('click', async () => {
+                try {
+                    // Create demo user data
+                    const demoUser = {
+                        id: 'demo-user-123',
+                        name: 'Demo User',
+                        email: 'demo@skyhi.app',
+                        avatar: 'https://ui-avatars.com/api/?name=Demo+User&background=7f0df2&color=fff'
+                    };
 
-                // Add click event to capture button
-                document.getElementById('capture-face').addEventListener('click', () => {
-                    window.faceRecognition.verifyFace();
-                });
-            } catch (error) {
-                document.getElementById('login-status').textContent = error.message;
-            }
+                    // Store demo token and user
+                    localStorage.setItem('skyhi_token', 'demo-token-123');
+                    localStorage.setItem('skyhi_user', JSON.stringify(demoUser));
+
+                    // Login user
+                    if (window.skyhiApp) {
+                        window.skyhiApp.loginUser(demoUser);
+                    }
+                } catch (error) {
+                    console.error('Demo login error:', error);
+                }
+            });
         });
     </script>
 </body>

@@ -43,26 +43,14 @@ const connectToDatabase = async () => {
         });
         console.log('✅ Connected to MongoDB');
 
-        // Load face recognition models
-        try {
-            const faceRecognition = require('./config/faceRecognition.js');
-            await faceRecognition.loadModels();
-            console.log('✅ Face recognition models loaded');
-        } catch (error) {
-            console.error('❌ Failed to load face recognition models:', error);
-        }
+        // Face recognition disabled for now - requires Visual Studio build tools
+        console.log('ℹ️  Face recognition disabled - install Visual Studio build tools to enable');
     } catch (error) {
         console.log('⚠️  MongoDB connection failed, running in demo mode');
         console.log('   To enable full functionality, install MongoDB locally or update MONGODB_URI');
 
-        // Load face recognition models even without database
-        try {
-            const faceRecognition = require('./config/faceRecognition.js');
-            await faceRecognition.loadModels();
-            console.log('✅ Face recognition models loaded (demo mode)');
-        } catch (error) {
-            console.error('❌ Failed to load face recognition models:', error);
-        }
+        // Face recognition disabled for now - requires Visual Studio build tools
+        console.log('ℹ️  Face recognition disabled - install Visual Studio build tools to enable');
     }
 };
 

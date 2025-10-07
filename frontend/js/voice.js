@@ -3,6 +3,8 @@ class VoiceRecognition {
         this.recognition = null;
         this.isListening = false;
         this.finalTranscript = '';
+        this.wakeWords = ['hey skyhi', 'hello skyhi', 'jarvis', 'skyhi', 'hey jarvis', 'activate skyhi', 'wake up skyhi'];
+        this.contextMemory = [];
         this.init();
     }
 
@@ -46,9 +48,13 @@ class VoiceRecognition {
                 }
             }
 
-            // Check for wake word
-            if (this.finalTranscript.toLowerCase().includes('hey skyhi') || 
-                this.finalTranscript.toLowerCase().includes('hello skyhi')) {
+            // Check for wake word with improved detection
+            const fullTranscript = (this.finalTranscript + interimTranscript).toLowerCase();
+            const wakeWordDetected = this.wakeWords.some(wakeWord => 
+                fullTranscript.includes(wakeWord.toLowerCase())
+            );
+
+            if (wakeWordDetected && event.results[event.results.length - 1].isFinal) {
                 this.processCommand(this.finalTranscript);
                 this.finalTranscript = '';
             }
@@ -84,7 +90,41 @@ class VoiceRecognition {
     }
 
     processCommand(transcript) {
-        const command = transcript.toLowerCase().replace(/hey skyhi|hello skyhi/gi, '').trim();
-        window.skyhiApp.processVoiceCommand(command);
+        // Remove wake words from command
+        let command = transcript.toLowerCase();
+        this.wakeWords.forEach(wakeWord => {
+            command = command.replace(wakeWord.toLowerCase(), '').trim();
+        });
+        
+        // Store in context memory
+        this.addToContext('user', command);
+        
+        // Process the command
+        if (window.skyhiApp) {
+            window.skyhiApp.processVoiceCommand(command);
+        }
+    }
+
+    // Context memory management
+    addToContext(role, content) {
+        this.contextMemory.push({ role, content, timestamp: new Date() });
+        
+        // Limit context size
+        if (this.contextMemory.length > 20) {
+            this.contextMemory = this.contextMemory.slice(-20);
+        }
+    }
+
+    getContext() {
+        return this.contextMemory.slice(-10); // Return last 10 interactions
+    }
+
+    // Toggle voice recognition
+    toggle() {
+        if (this.isListening) {
+            this.stop();
+        } else {
+            this.start();
+        }
     }
 }

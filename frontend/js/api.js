@@ -33,10 +33,14 @@ class SkyHiAPI {
         });
     }
 
-    static async sendChatMessage(message) {
+    static async sendChatMessage(message, context = []) {
         return await this.request('/ai/chat', {
             method: 'POST',
-            body: JSON.stringify({ message }),
+            body: JSON.stringify({ 
+                message,
+                context,
+                mode: message.toLowerCase().includes('pro:') ? 'pro' : 'normal'
+            }),
         });
     }
 
@@ -64,5 +68,36 @@ class SkyHiAPI {
             method: 'POST',
             body: JSON.stringify(reminderData),
         });
+    }
+
+    static async getSchedule() {
+        return await this.request('/schedule');
+    }
+
+    static async getCalendar() {
+        return await this.request('/calendar');
+    }
+
+    static async getJokes() {
+        return await this.request('/integrations/jokes');
+    }
+
+    static async getFacts() {
+        return await this.request('/integrations/facts');
+    }
+
+    static async calculate(expression) {
+        return await this.request('/integrations/calculator', {
+            method: 'POST',
+            body: JSON.stringify({ expression }),
+        });
+    }
+
+    static async convertCurrency(from, to, amount) {
+        return await this.request(`/integrations/currency?from=${from}&to=${to}&amount=${amount}`);
+    }
+
+    static async runSpeedTest() {
+        return await this.request('/integrations/speedtest');
     }
 }

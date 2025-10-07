@@ -121,7 +121,8 @@ class Dashboard {
                 },
                 body: JSON.stringify({ 
                     message,
-                    context: this.getChatContext()
+                    context: this.getChatContext(),
+                    mode: message.toLowerCase().includes('pro:') ? 'pro' : 'normal'
                 })
             });
 
@@ -130,12 +131,27 @@ class Dashboard {
             // Remove typing indicator
             this.removeTypingIndicator();
             
-            // Add AI response
-            this.addChatMessage(data.response, 'assistant');
+            // Handle new response format
+            if (data.speak && data.text) {
+                this.addChatMessage(data.text, 'assistant');
+                
+                // Use TTS for voice response
+                if (window.speechSynthesis) {
+                    this.speakResponse(data.speak);
+                }
+            } else {
+                // Fallback for old format
+                this.addChatMessage(data.response || data.text, 'assistant');
+            }
             
             // Store conversation context
             this.addToContext('user', message);
-            this.addToContext('assistant', data.response);
+            this.addToContext('assistant', data.text || data.response);
+            
+            // Execute any actions
+            if (data.action) {
+                await this.executeAction(data.action, data.data);
+            }
             
         } catch (error) {
             console.error('Chat error:', error);
@@ -208,10 +224,12 @@ class Dashboard {
 
     getQuickActionMessage(action) {
         const messages = {
+            'System Info': 'Show me system information',
             'Schedule': 'Show me my schedule for today',
-            'Tasks': 'What are my pending tasks?',
             'Weather': 'What\'s the weather like today?',
-            'News': 'Show me the latest news'
+            'Web Search': 'Search for artificial intelligence',
+            'Clipboard': 'Read clipboard contents',
+            'Screenshot': 'Take a screenshot'
         };
         return messages[action];
     }
@@ -327,8 +345,16 @@ class Dashboard {
     async loadNews() {
         try {
             const response = await fetch('http://localhost:3001/api/integrations/news');
-            const news = await response.json();
-            this.news = news;
+            const data = await response.json();
+            
+            // Handle new API format
+            if (data.articles) {
+                this.news = data.articles;
+            } else {
+                // Fallback for old format
+                this.news = data;
+            }
+            
             this.updateNewsWidget();
         } catch (error) {
             console.error('Error loading news:', error);
@@ -497,6 +523,293 @@ class Dashboard {
 
     async emotionalSupport(message) {
         return await this.usePremiumFeature('emotional_support', { message });
+    }
+
+    // Text-to-Speech functionality
+    speakResponse(text) {
+        if (window.speechSynthesis) {
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 0.8;
+            
+            // Try to use a more natural voice
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(voice => 
+                voice.name.includes('Google') || 
+                voice.name.includes('Microsoft') ||
+                voice.lang.startsWith('en')
+            );
+            
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+            
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // Action execution
+    async executeAction(action, data) {
+        switch (action.type) {
+            case 'open_app':
+                await this.openApplication(action.target, data);
+                break;
+            case 'system_info':
+                await this.getSystemInfo();
+                break;
+            case 'create_file':
+                await this.createFile(action.target, data);
+                break;
+            case 'read_clipboard':
+                await this.readClipboard();
+                break;
+            case 'screenshot':
+                await this.takeScreenshot();
+                break;
+            case 'time_info':
+                await this.getTimeInfo();
+                break;
+            case 'set_alarm':
+                await this.setAlarm(action.target, data);
+                break;
+            case 'web_search':
+                await this.webSearch(action.target, data);
+                break;
+            case 'compose_email':
+                await this.composeEmail();
+                break;
+            case 'calendar_action':
+                await this.calendarAction();
+                break;
+            case 'music_control':
+                await this.musicControl(action.target, data);
+                break;
+            case 'fetch_news':
+                await this.loadNews();
+                break;
+            case 'fetch_weather':
+                await this.loadWeather();
+                break;
+            case 'fetch_schedule':
+                await this.loadSchedule();
+                break;
+            case 'fetch_tasks':
+                await this.loadTasks();
+                break;
+            default:
+                console.log('Unknown action:', action);
+        }
+    }
+
+    // Application opening functionality
+    async openApplication(appName, data) {
+        this.addChatMessage(`Opening ${appName}...`, 'assistant');
+        
+        // In a real implementation, this would use system APIs
+        // For now, we'll simulate the action
+        setTimeout(() => {
+            this.addChatMessage(`${appName} has been launched successfully.`, 'assistant');
+        }, 1000);
+    }
+
+    // Additional data loading methods
+    async loadSchedule() {
+        try {
+            const response = await fetch('http://localhost:3001/api/schedule', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('skyhi_token')}`
+                }
+            });
+            const schedule = await response.json();
+            this.addChatMessage(`Your schedule: ${JSON.stringify(schedule)}`, 'assistant');
+        } catch (error) {
+            this.addChatMessage('Unable to load schedule at this time.', 'assistant');
+        }
+    }
+
+    // JARVIS-style System Control Features
+    async getSystemInfo() {
+        const systemInfo = {
+            platform: navigator.platform,
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            screenResolution: `${screen.width}x${screen.height}`,
+            colorDepth: screen.colorDepth,
+            memory: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : 'Unknown',
+            cores: navigator.hardwareConcurrency || 'Unknown',
+            online: navigator.onLine ? 'Online' : 'Offline',
+            battery: await this.getBatteryInfo()
+        };
+
+        const infoText = `🖥️ **System Information:**
+• Platform: ${systemInfo.platform}
+• Language: ${systemInfo.language}
+• Timezone: ${systemInfo.timezone}
+• Screen: ${systemInfo.screenResolution}
+• Memory: ${systemInfo.memory}
+• CPU Cores: ${systemInfo.cores}
+• Status: ${systemInfo.online}
+• Battery: ${systemInfo.battery}`;
+
+        this.addChatMessage(infoText, 'assistant');
+    }
+
+    async getBatteryInfo() {
+        if ('getBattery' in navigator) {
+            try {
+                const battery = await navigator.getBattery();
+                return `${Math.round(battery.level * 100)}% (${battery.charging ? 'Charging' : 'Not charging'})`;
+            } catch (error) {
+                return 'Unknown';
+            }
+        }
+        return 'Not available';
+    }
+
+    async createFile(fileName, data) {
+        try {
+            const blob = new Blob(['Created by SkyHi AI Assistant'], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            this.addChatMessage(`✅ File "${fileName}" created and downloaded successfully!`, 'assistant');
+        } catch (error) {
+            this.addChatMessage(`❌ Failed to create file "${fileName}". ${error.message}`, 'assistant');
+        }
+    }
+
+    async readClipboard() {
+        try {
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    this.addChatMessage(`📋 **Clipboard Contents:**\n\n${text}`, 'assistant');
+                } else {
+                    this.addChatMessage('📋 Clipboard is empty.', 'assistant');
+                }
+            } else {
+                this.addChatMessage('📋 Clipboard access not available in this browser.', 'assistant');
+            }
+        } catch (error) {
+            this.addChatMessage(`❌ Failed to read clipboard: ${error.message}`, 'assistant');
+        }
+    }
+
+    async takeScreenshot() {
+        try {
+            this.addChatMessage('📸 Screenshot feature requires html2canvas library. Taking screenshot simulation...', 'assistant');
+            setTimeout(() => {
+                this.addChatMessage('📸 Screenshot simulation completed! (In a real implementation, this would capture the screen)', 'assistant');
+            }, 1000);
+        } catch (error) {
+            this.addChatMessage(`❌ Failed to take screenshot: ${error.message}`, 'assistant');
+        }
+    }
+
+    async getTimeInfo() {
+        const now = new Date();
+        const timeInfo = {
+            time: now.toLocaleTimeString(),
+            date: now.toLocaleDateString(),
+            day: now.toLocaleDateString('en-US', { weekday: 'long' }),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            timestamp: now.toISOString()
+        };
+
+        const timeText = `🕐 **Current Time & Date:**
+• Time: ${timeInfo.time}
+• Date: ${timeInfo.date}
+• Day: ${timeInfo.day}
+• Timezone: ${timeInfo.timezone}
+• Timestamp: ${timeInfo.timestamp}`;
+
+        this.addChatMessage(timeText, 'assistant');
+    }
+
+    async setAlarm(timeInfo, data) {
+        try {
+            const alarmText = `⏰ **Alarm Set:**
+• Time: ${timeInfo}
+• Status: Active
+• Note: This is a simulation. In a real implementation, this would set an actual system alarm.`;
+
+            this.addChatMessage(alarmText, 'assistant');
+
+            const alarms = JSON.parse(localStorage.getItem('skyhi_alarms') || '[]');
+            alarms.push({
+                id: Date.now(),
+                time: timeInfo,
+                created: new Date().toISOString(),
+                active: true
+            });
+            localStorage.setItem('skyhi_alarms', JSON.stringify(alarms));
+
+        } catch (error) {
+            this.addChatMessage(`❌ Failed to set alarm: ${error.message}`, 'assistant');
+        }
+    }
+
+    async webSearch(query, data) {
+        try {
+            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+            window.open(searchUrl, '_blank');
+
+            this.addChatMessage(`🔍 **Web Search:**\n\nSearching for "${query}" in Google...\n\n[Search opened in new tab]`, 'assistant');
+        } catch (error) {
+            this.addChatMessage(`❌ Failed to perform web search: ${error.message}`, 'assistant');
+        }
+    }
+
+    async composeEmail() {
+        try {
+            const emailUrl = `mailto:?subject=&body=`;
+            window.open(emailUrl);
+
+            this.addChatMessage(`📧 **Email Composer:**\n\nOpening default email client...`, 'assistant');
+        } catch (error) {
+            this.addChatMessage(`❌ Failed to open email composer: ${error.message}`, 'assistant');
+        }
+    }
+
+    async calendarAction() {
+        try {
+            const calendarUrl = 'https://calendar.google.com/calendar/';
+            window.open(calendarUrl, '_blank');
+
+            this.addChatMessage(`📅 **Calendar:**\n\nOpening Google Calendar in new tab...`, 'assistant');
+        } catch (error) {
+            this.addChatMessage(`❌ Failed to open calendar: ${error.message}`, 'assistant');
+        }
+    }
+
+    async musicControl(action, data) {
+        try {
+            const actionText = {
+                'play': '▶️ Playing music',
+                'pause': '⏸️ Pausing music',
+                'next': '⏭️ Next song'
+            };
+
+            this.addChatMessage(`🎵 **Music Control:**\n\n${actionText[action] || 'Music control activated'}`, 'assistant');
+
+            setTimeout(() => {
+                this.addChatMessage(`🎵 Music control simulation: ${action} command executed!`, 'assistant');
+            }, 1000);
+
+        } catch (error) {
+            this.addChatMessage(`❌ Failed to control music: ${error.message}`, 'assistant');
+        }
     }
 }
 

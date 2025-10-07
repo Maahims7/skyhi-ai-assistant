@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const mongoose = require('mongoose');
 const User = require('../models/User.js');
-const faceRecognition = require('../config/faceRecognition.js');
+// const faceRecognition = require('../config/faceRecognition.js'); // Disabled for now
 
 const router = express.Router();
 
@@ -32,97 +32,25 @@ router.post('/verify-face', upload.single('faceImage'), async (req, res) => {
 
         console.log('Processing face verification...');
 
-        // Extract face descriptor from the image
-        const faceDescriptor = await faceRecognition.detectFace(req.file.buffer);
+        // Face recognition disabled - create demo user
+        console.log('Running in demo mode - face recognition disabled');
+        const token = jwt.sign(
+            { userId: 'demo-user-123' },
+            process.env.JWT_SECRET || 'demo-secret-key',
+            { expiresIn: '7d' }
+        );
 
-        // Check if database is available
-        if (!isDatabaseAvailable()) {
-            // Demo mode - create a mock user response
-            console.log('Running in demo mode - no database connection');
-            const token = jwt.sign(
-                { userId: 'demo-user-123' },
-                process.env.JWT_SECRET,
-                { expiresIn: '7d' }
-            );
-
-            return res.json({
-                verified: true,
-                token,
-                user: {
-                    id: 'demo-user-123',
-                    name: 'Demo User',
-                    email: 'demo@skyhi.app',
-                    avatar: 'https://ui-avatars.com/api/?name=Demo+User&background=7f0df2&color=fff'
-                }
-            });
-        }
-
-        // Find matching user in database
-        const users = await User.find({ role: 'user' });
-        let matchedUser = null;
-        let minDistance = Infinity;
-
-        for (const user of users) {
-            const distance = faceRecognition.calculateFaceDistance(faceDescriptor, user.faceDescriptor);
-            if (distance < minDistance && distance <= faceRecognition.FACE_MATCH_THRESHOLD) {
-                minDistance = distance;
-                matchedUser = user;
+        return res.json({
+            verified: true,
+            token,
+            user: {
+                id: 'demo-user-123',
+                name: 'Demo User',
+                email: 'demo@skyhi.app',
+                avatar: 'https://ui-avatars.com/api/?name=Demo+User&background=7f0df2&color=fff'
             }
-        }
+        });
 
-        if (matchedUser) {
-            // Existing user - login successful
-            console.log(`User ${matchedUser.name} recognized with distance: ${minDistance}`);
-
-            // Update last login
-            matchedUser.lastLogin = new Date();
-            matchedUser.loginAttempts.push({
-                timestamp: new Date(),
-                successful: true,
-                faceDescriptor: faceDescriptor
-            });
-            await matchedUser.save();
-
-            const token = jwt.sign(
-                { userId: matchedUser._id },
-                process.env.JWT_SECRET,
-                { expiresIn: '7d' }
-            );
-
-            return res.json({
-                verified: true,
-                token,
-                user: {
-                    id: matchedUser._id,
-                    name: matchedUser.name,
-                    email: matchedUser.email,
-                    avatar: matchedUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(matchedUser.name)}&background=7f0df2&color=fff`
-                }
-            });
-        } else {
-            // Unknown user - store in database
-            console.log('Unknown face detected, storing in database...');
-
-            const unknownUser = new User({
-                name: 'Unknown User',
-                email: `unknown-${Date.now()}@skyhi.app`,
-                faceDescriptor: faceDescriptor,
-                role: 'unknown',
-                loginAttempts: [{
-                    timestamp: new Date(),
-                    successful: false,
-                    faceDescriptor: faceDescriptor
-                }]
-            });
-
-            await unknownUser.save();
-
-            return res.status(401).json({
-                verified: false,
-                message: 'Face not recognized. Please register first.',
-                unknownFaceId: unknownUser._id
-            });
-        }
     } catch (error) {
         console.error('Face verification error:', error);
 
