@@ -5,15 +5,15 @@ const router = express.Router();
 // AI Service Configuration
 const AI_SERVICES = {
     FREE: {
-        name: 'Google Gemini 1.5 Flash',
+        name: 'Google Gemini 2.5 Flash-Lite',
         apiKey: process.env.GEMINI_API_KEY || 'AIzaSyC5ttzIJuJmjFGaWc2xh28A6xet7UYrhs4',
-        endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+        endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
         maxTokens: 2000
     },
     PREMIUM: {
-        name: 'Google Gemini 1.5 Flash Pro',
+        name: 'Google Gemini 2.5 Flash-Lite Pro',
         apiKey: process.env.GEMINI_API_KEY || 'AIzaSyC5ttzIJuJmjFGaWc2xh28A6xet7UYrhs4',
-        endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+        endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
         maxTokens: 4000
     }
 };
@@ -58,7 +58,7 @@ router.post('/chat', async (req, res) => {
             action: parsedResponse.action,
             data: parsedResponse.data,
             type: isProMode ? 'pro_conversation' : 'conversation',
-            service: isProMode ? 'Google Gemini 1.5 Flash Pro' : 'Google Gemini 1.5 Flash',
+            service: isProMode ? 'Google Gemini 2.5 Flash-Lite Pro' : 'Google Gemini 2.5 Flash-Lite',
             timestamp: new Date().toISOString()
         });
 
