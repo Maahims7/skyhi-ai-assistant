@@ -1,5 +1,5 @@
 class SkyHiAPI {
-    static baseURL = 'http://localhost:3001/api';
+    static baseURL = 'http://localhost:3002/api';
 
     static async request(endpoint, options = {}) {
         const token = localStorage.getItem('skyhi_token');
